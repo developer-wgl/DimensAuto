@@ -1,0 +1,205 @@
+group = "tools"
+version = "1.1.2"
+
+task dimens_auto(type: ConvertDimensTask) {
+
+    /* 参数配置 */
+    config = [
+            "dimens_path"    : "src${File.separator}main${File.separator}res${File.separator}values${File.separator}dimens_auto.xml",
+            "convert_rules"  : ["xhdpi": 1, "sw600dp-xhdpi": 3 / 2],
+            "to_convert_unit": ["dp", "dip", "sp"],
+            "decimal"        : 2,
+            "help_url"       : "https://wiki.n.miui.com/x/54XaDw",
+            "debug"          : false
+    ]
+
+    analyze()
+}
+
+/**
+ * dimens convert task
+ * <p>
+ * email:forguangliang@gmail.com
+ */
+class ConvertDimensTask extends DefaultTask {
+
+    def TAG = "dimens auto: "
+
+    @Optional
+    def config = [
+            "dimens_path"    : "",       // 要转换的文件路径
+            "convert_rules"  : [],       // 转换规则，可自定义扩展。 如 ：["sw600dp-xhdpi": 3/2,"nxhdpi": 3/2.75]
+            "to_convert_unit": [],       // 处理转换的单位。 如 ["dp", "dip", "sp"]
+            "help_url"       : "",       // 帮助文档
+            "decimal"        : 2,        // 转换后小数点保留个数
+            "debug"          : false
+    ]
+
+    def analyze() {
+        if (!config.dimens_path || !config.convert_rules || !config.to_convert_unit) {
+            getLogger().log(LogLevel.ERROR, "${TAG}规则没有被使用！")
+            return
+        }
+
+        // check file
+        File defaultXmlFile = getProject().file(config.dimens_path)
+        if (!defaultXmlFile.exists()) {
+            if (config.debug) {
+                println TAG + defaultXmlFile.isDirectory()
+            }
+            if (!newDimensFile.isDirectory()) {
+                newDimensFile.getParentFile().mkdirs()
+            }
+            if (!defaultXmlFile.createNewFile()) {
+                throw new Exception("ERROR: dimens文件创建失败，未进行dimens转换： " +
+                        defaultXmlFile.getAbsolutePath() + " ${getIdentityPath()}:dimens_auto.")
+            } else {
+                def init = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+                        "<resources>\n" +
+                        "    <!-- 可在此处写入默认dimens，编译时即可自动转换为相应配置的dimens. -->\n" +
+                        "</resources>"
+                defaultXmlFile.text = init
+            }
+        }
+
+        println()
+        println "${TAG}start"
+        long startTime = System.currentTimeMillis()
+
+        // edit regex to get dimens value and unit
+        def unit = ''
+        config.to_convert_unit.each {
+            unit += it + "|"
+        }
+        def unitRegex = ~"([-0-9.]{1,10})(${unit[0..-2]})"
+        if (config.debug) {
+            println "${TAG}dimen vaule regex：${unitRegex}"
+        }
+
+        // real convert by rules
+        for (def rule in config.convert_rules) {
+            println "${TAG}convert unit：${config.to_convert_unit}, rule：default(1) -> ${rule.key}(${rule.value})"
+
+            File newDimensFile = copyDimensFile(defaultXmlFile, rule)
+            if (config.debug) {
+                println "create new file：${newDimensFile.getAbsolutePath()}"
+            }
+            convert(newDimensFile, unitRegex, rule)
+        }
+        long endTime = System.currentTimeMillis()
+        println "${TAG}finish, consume: ${endTime - startTime} ms, help：${config.help_url}"
+        println()
+    }
+
+    def copyDimensFile(File defaultXmlFile, rule) {
+        def newPath = defaultXmlFile.
+                getParentFile().getParentFile().getAbsolutePath() +
+                File.separator + "values-" + rule.key + File.separator + defaultXmlFile.getName()
+
+        if (config.debug) {
+            println TAG + newPath
+        }
+
+        File newDimensFile = new File(newPath)
+        if (!newDimensFile.exists()) {
+            if (config.debug) {
+                println TAG + newDimensFile.isDirectory()
+            }
+            if (!newDimensFile.isDirectory()) {
+                newDimensFile.getParentFile().mkdirs()
+            }
+            if (!newDimensFile.createNewFile()) {
+                throw new Exception("${TAG}ERROR:  values-${rule.key + File.separator + config.dimens_name}" +
+                        "文件创建失败，路径： " + newDimensFile.getAbsolutePath() + " ${getPath()}:dimens_auto.")
+            }
+        }
+
+        newDimensFile.text = defaultXmlFile.text
+
+        if (config.debug) {
+            println TAG + newDimensFile.text
+        }
+
+        if (!newDimensFile.exists()) {
+            throw new Exception("${TAG}ERROR:  values-${rule.key + File.separator + config.dimens_name}" +
+                    "文件创建失败，路径： " + newDimensFile.getAbsolutePath() + " ${getPath()}:dimens_auto.")
+        }
+        return newDimensFile
+    }
+
+    def convert(File newDimensFile, def unitRegex, def rule) {
+        def xml = new XmlParser().parseText(newDimensFile.text)  // 解决 windows 中 parse 读取编码问题
+        def dimens = xml."**".findAll { node ->  // find all dimens
+            if (config.debug) {
+                println TAG + node
+            }
+            node.name() == "dimen" || node.@format == "dimension"
+        }
+
+        if (xml.children().size() != dimens.size()) {
+            throw new Exception("${TAG}ERROR:  共找到 values = " + xml.children().size() + ", 共找到 dimens = "
+                    + dimens.size() + ". 异常：value.size != dimens.size，请检查是否有非dimens字段被加入 ${getPath()}:dimens_auto.")
+        }
+
+        int convert_count = 0
+        dimens.each {
+            if (config.debug) {
+                println TAG + "dimens.each:" + it
+            }
+            for (int i = 0; i < it.value().size(); i++) {
+                def matcher
+                if ((matcher = it.value()[i] =~ unitRegex).find()) {
+                    if (config.debug) {
+                        println "convert before " + it.value()[i] + " value:" + matcher[0][1].toFloat() + " rule:" + rule.value.toFloat()
+                    }
+                    def result = matcher[0][1].toDouble() * rule.value.toDouble()
+                    if (result == it.value()[i]) {
+                        throw new Exception("${TAG}ERROR: 自动化转换失败，此条数据未被转换，请检查：" + it + " ${getPath()}:dimens_auto.")
+                    }
+                    it.value()[i] = String.format("%.${config.decimal}f", result) + matcher[0][2]
+                    if (config.debug) {
+                        println "convert after " + it.value()[i]
+                    }
+                    convert_count++
+                } else {
+                    getLogger().log(LogLevel.WARN, "${TAG}WARNING: 此条数据未被转换，请检查：${it}")
+                }
+            }
+        }
+
+        def append = "${'\n'}\t此文件由默认 ${newDimensFile.getName()} 文件自动转换处理，除合并代码外勿编辑！"
+        if (config.debug) {
+            append += '\n'
+            append += "${'\n'}\t转换处理单位有：${config.to_convert_unit}"
+            append += "${'\n'}\t此处转换逻辑为：default(1) -> ${rule.key}(${rule.value})"
+            append += "${'\n'}\t共找到节点数量：${xml.children().size()} , 共转换节点数量：${convert_count}"
+        }
+        append += "${'\n'}\t有疑问请看文档：${config.help_url}${'\n'}"
+
+        def printer = new XmlNodePrinterGB(newDimensFile)
+        printer.print(xml)
+        printer.printLineEnd(append)
+        printer.close()  // 解决windows机器文件占用
+    }
+
+    class XmlNodePrinterGB extends XmlNodePrinter {
+
+        BufferedWriter mBufferedWriter
+
+        XmlNodePrinterGB(File file) {
+            // 解决windows 不自动关流问题
+            super(new PrintWriter(mBufferedWriter = new BufferedWriter(
+                    new OutputStreamWriter(new FileOutputStream(file), "UTF-8"))))
+        }
+
+        @Override
+        void printLineEnd(String comment) {
+            super.printLineEnd(comment)
+        }
+
+        void close() {
+            if (mBufferedWriter == null) return
+            mBufferedWriter.close()
+        }
+    }
+}

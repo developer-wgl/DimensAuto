@@ -1,15 +1,16 @@
 group = "tools"
-version = "1.1.2"
+version = "1.2.0"
 
 task dimens_auto(type: ConvertDimensTask) {
 
     /* 参数配置 */
     config = [
             "dimens_path"    : "src${File.separator}main${File.separator}res${File.separator}values${File.separator}dimens_auto.xml",
-            "convert_rules"  : ["xhdpi": 1, "sw600dp-xhdpi": 3 / 2],
-            "to_convert_unit": ["dp", "dip", "sp"],
+            "convert_rules"  : ["xxhdpi": 1, "sw600dp-xhdpi": 3 / 2],
+            "convert_unit": ["dp", "dip", "sp"],
             "decimal"        : 2,
-            "help_url"       : "https://wiki.n.miui.com/x/54XaDw",
+            "init_hint"      : "可在此处写入默认dimens，编译时即可自动转换为相应配置的dimens.",
+            "help_url"       : "https://github.com/developer-wgl/DimensAuto",
             "debug"          : false
     ]
 
@@ -27,17 +28,18 @@ class ConvertDimensTask extends DefaultTask {
 
     @Optional
     def config = [
-            "dimens_path"    : "",       // 要转换的文件路径
-            "convert_rules"  : [],       // 转换规则，可自定义扩展。 如 ：["sw600dp-xhdpi": 3/2,"nxhdpi": 3/2.75]
-            "to_convert_unit": [],       // 处理转换的单位。 如 ["dp", "dip", "sp"]
-            "help_url"       : "",       // 帮助文档
-            "decimal"        : 2,        // 转换后小数点保留个数
-            "debug"          : false
+            "dimens_path"  : "",       // 要转换的 `dimens_auto.xml` 相对、`module`的路径. 
+            "convert_rules": [],       // 转换规则，可自定义扩展。 如 ：["hdpi": 3/1.5,"xhdpi": 3/2,"sw600dp-xhdpi": 3/2,"nxhdpi": 3/2.75,"xxxhdpi": 3/4]
+            "convert_unit" : [],       // 要转换的单位。 如 ["dp", "dip", "sp"]
+            "decimal"      : 2,        // 转换后小数点保留位数
+            "init_hint"    : "",       // 文件初次创建时的提示语句
+            "help_url"     : "",       // 帮助文档
+            "debug"        : false     // 输出更多调试日志，便于排查问题
     ]
 
     def analyze() {
-        if (!config.dimens_path || !config.convert_rules || !config.to_convert_unit) {
-            getLogger().log(LogLevel.ERROR, "${TAG}规则没有被使用！")
+        if (!config.dimens_path || !config.convert_rules || !config.convert_unit) {
+            getLogger().log(LogLevel.ERROR, "${TAG}没有转换配置可用，请检查转换配置！")
             return
         }
 
@@ -47,17 +49,15 @@ class ConvertDimensTask extends DefaultTask {
             if (config.debug) {
                 println TAG + defaultXmlFile.isDirectory()
             }
-            if (!newDimensFile.isDirectory()) {
-                newDimensFile.getParentFile().mkdirs()
+            if (!defaultXmlFile.isDirectory()) {
+                defaultXmlFile.getParentFile().mkdirs()
             }
             if (!defaultXmlFile.createNewFile()) {
                 throw new Exception("ERROR: dimens文件创建失败，未进行dimens转换： " +
                         defaultXmlFile.getAbsolutePath() + " ${getIdentityPath()}:dimens_auto.")
             } else {
                 def init = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
-                        "<resources>\n" +
-                        "    <!-- 可在此处写入默认dimens，编译时即可自动转换为相应配置的dimens. -->\n" +
-                        "</resources>"
+                        "<resources>\n\t<!-- ${config.init_hint} -->\n</resources>"
                 defaultXmlFile.text = init
             }
         }
@@ -68,7 +68,7 @@ class ConvertDimensTask extends DefaultTask {
 
         // edit regex to get dimens value and unit
         def unit = ''
-        config.to_convert_unit.each {
+        config.convert_unit.each {
             unit += it + "|"
         }
         def unitRegex = ~"([-0-9.]{1,10})(${unit[0..-2]})"
@@ -78,7 +78,7 @@ class ConvertDimensTask extends DefaultTask {
 
         // real convert by rules
         for (def rule in config.convert_rules) {
-            println "${TAG}convert unit：${config.to_convert_unit}, rule：default(1) -> ${rule.key}(${rule.value})"
+            println "${TAG}convert unit：${config.convert_unit}, rule：default(1) -> ${rule.key}(${rule.value})"
 
             File newDimensFile = copyDimensFile(defaultXmlFile, rule)
             if (config.debug) {
@@ -170,7 +170,7 @@ class ConvertDimensTask extends DefaultTask {
         def append = "${'\n'}\t此文件由默认 ${newDimensFile.getName()} 文件自动转换处理，除合并代码外勿编辑！"
         if (config.debug) {
             append += '\n'
-            append += "${'\n'}\t转换处理单位有：${config.to_convert_unit}"
+            append += "${'\n'}\t转换处理单位有：${config.convert_unit}"
             append += "${'\n'}\t此处转换逻辑为：default(1) -> ${rule.key}(${rule.value})"
             append += "${'\n'}\t共找到节点数量：${xml.children().size()} , 共转换节点数量：${convert_count}"
         }

@@ -8,7 +8,7 @@
 一款开发无感知、即时编译的 `dimens` 自动化转换工具、 `gradle` 插件脚本
 
 ## 背景
-去年刚加入小爱，对于小米这种适配`values-nxhdpi`情况很不适应，有几点写业务的时候很不爽：
+去年刚加入小爱时，对于小米这种适配`values-nxhdpi`情况很不适应，有几点写业务的时候很不爽：
 - 每次人工映射效率低；
 - 更改一处值，另一处忘记更改时，UI/测试对于部分机型都不会看出问题，容易出错；
 - 新同事可能并不了解此适配，项目中有很多并未适配的 `dimens` 键值，另外沟通还需要额外工作；   
@@ -89,15 +89,16 @@ apply from: "../dimens_auto.gradle"
     ![自动运行](https://img-blog.csdnimg.cn/20200810212929552.jpg)
 
 * 手动执行：打开 `dimens_auto.gradle` 点击task 左侧按钮运行 
+
     <img src="https://img-blog.csdnimg.cn/20200810212929616.png" width="400px"/>
 
 * 手动执行：打开Android Studio 打开菜单 View → Tool Windows → Gradle → Project Name → Tasks → other → dimens_auto 双击执行
     <img src="https://img-blog.csdnimg.cn/20200810212929829.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2d1YW5nX2xpYW5nXw==,size_16,color_FFFFFF,t_70" width="400px"/>
 
 2. 不想被转换怎么办
--  dimens_auto.gradle中会有一些参数配置，并不是所有放在 `dimens_auto.xml` 的值都会被转换。默认配置为只处理`【dp、dip、sp】`，未被转换时会抛出警告。如果你不想被转换的值就是dp、dip、sp，那请看下一条
+-  `dimens_auto.gradle`中会有一些参数配置，并不是所有放在 `dimens_auto.xml` 的值都会被转换。默认配置为只处理`【dp、dip、sp】`，未被转换时会抛出警告。如果你不想被转换的值就是dp、dip、sp，那请看下一条
 
-- 当前转换逻辑为处理当前module中的默认名为 `dimens_auto.xml` 的文件进行转换，所以把自己不想自动转换的值放到其他dimen文件中即可，如默认的dimens.xml
+- 当前转换逻辑为处理当前`module`中的默认名为 `dimens_auto.xml` 的文件进行转换，所以把自己不想自动转换的值放到其他dimen文件中即可，如默认的dimens.xml
 
 
 4. 原理是什么

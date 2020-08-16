@@ -1,0 +1,33 @@
+<resources>
+  <dimen name="a">
+    1px
+  </dimen>
+  <dimen name="b">
+    1.50dp
+  </dimen>
+  <dimen name="c">
+    1.50dip
+  </dimen>
+  <dimen name="d">
+    1.50sp
+  </dimen>
+  <dimen name="a_">
+    -1px
+  </dimen>
+  <dimen name="b_">
+    -1.50dp
+  </dimen>
+  <dimen name="c_">
+    -1.50dip
+  </dimen>
+  <dimen name="d_">
+    -1.50sp
+  </dimen>
+  <attr name="attr" format="dimension">
+    150.00dp
+  </attr>
+</resources>
+ <!-- 
+	此文件由默认 dimens_auto.xml 文件自动转换处理，除合并代码外勿编辑！
+	有疑问请看文档：https://github.com/developer-wgl/DimensAuto
+ -->

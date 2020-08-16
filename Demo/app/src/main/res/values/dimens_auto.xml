@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<dimen name="a">1px</dimen>
+	<dimen name="b">1dp</dimen>
+	<dimen name="c">1dip</dimen>
+	<dimen name="d">1sp</dimen>
+
+	<dimen name="a_">-1px</dimen>
+	<dimen name="b_">-1dp</dimen>
+	<dimen name="c_">-1dip</dimen>
+	<dimen name="d_">-1sp</dimen>
+
+	<!--不能在文件写dimens以外类型-->
+	<!--<string name="e">你好</string>-->
+
+	<attr name="attr" format="dimension">100dp</attr>
+
+	<!-- 可在此处写入默认dimens，编译时即可自动转换为相应配置的dimens. -->
+</resources>

@@ -118,7 +118,11 @@ apply from: "../dimens_auto.gradle"
 
 8. 关于跨平台问题（linux/MAC/windows）
 - windows 运行后不能运行，有乱码产生，已修复;
-- windows 平台运行后有系统换行符（LF/CRLF）change问题，已修复;
+- windows 平台运行后有系统换行符（LF/CRLF）change问题:
+    - 需关掉 `git` 编译自动 `crlf` 设置
+    ```git
+    git config --global core.autocrlf false
+    ```
 
 9. 为什么是转换 `dimens_auto.xml` 不是直接转换 `dimens.xml`  呢？
 如果你是全新项目，完全可以尝试更改配置文件直接转换 `dimens.xml` ，这样更省去了同事间推广、同步的成本。
